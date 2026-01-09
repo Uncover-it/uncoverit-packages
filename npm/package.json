@@ -1,0 +1,42 @@
+{
+  "name": "uncoverit",
+  "version": "1.1.0",
+  "author": "WarFiN123",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Uncover-it/uncoverit-packages.git"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "bugs": {
+    "url": "https://github.com/Uncover-it/uncoverit-packages/issues"
+  },
+  "description": "API Client for Uncover it",
+  "files": [
+    "dist"
+  ],
+  "homepage": "https://github.com/Uncover-it/uncoverit-packages#readme",
+  "keywords": [
+    "uncoverit"
+  ],
+  "license": "ISC",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "prepublishOnly": "bun run build"
+  },
+  "sideEffects": false,
+  "type": "commonjs",
+  "types": "./dist/index.d.ts"
+}
