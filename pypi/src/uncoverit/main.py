@@ -278,5 +278,7 @@ class UncoveritClient:
                 sample = Sample.model_validate(data)
                 sample.json_obj = data
                 return sample
+            if response.status == 404:
+                return None
             raise await InvalidApiResponse.from_response(response)
         return None
