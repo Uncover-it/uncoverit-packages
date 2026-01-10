@@ -30,7 +30,7 @@ Example Response:
 
 Checking if file exists (Upload function already does this:
 ```js
-await exists(apiKey, file); // file can be a File, Blog or a SHA-256 hash string
+await exists(apiKey, file); // file can be a File, Blob or a SHA-256 hash string
 ```
 Example Response:
 ```
