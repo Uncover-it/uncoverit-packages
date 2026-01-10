@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "uncoverit"
+version = "0.1.0"
+description = "Async API client for uncoverit.org"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{name = "144", email = "144@uncoverit.org"}]
+keywords = ["uncoverit", "async", "api", "file", "analysis", "websocket"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Topic :: Security",
+]
+
+dependencies = [
+    "aiohttp>=3.9.0",
+    "websockets>=12.0",
+    "pydantic>=2.5.0",
+    "aiofiles>=23.2.0",
+    "pefile>=2023.2.7",
+]
+
+[project.urls]
+Homepage = "https://uncoverit.org"
+Repository = "https://github.com/Uncover-it/uncoverit-packages"
+"Tracker Issues" = "https://github.com/Uncover-it/uncoverit-packages/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/uncoverit"]
