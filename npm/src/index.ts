@@ -2,6 +2,7 @@ import "crypto";
 
 export interface BalanceResponseType {
   requests_left: number;
+  created_at: Date;
   expiration_date: Date;
 }
 
@@ -11,7 +12,8 @@ export interface UploadResponseType {
 
 interface RawBalanceResponse {
   requests_left: number;
-  expiration_date: string | number;
+  created_at: string;
+  expiration_date: string;
 }
 
 export interface StaticAnalysisDataType {
@@ -35,7 +37,7 @@ interface Tags {
 }
 
 /**
- * Fetches the remaining balance and expiration date
+ * Fetches the remaining balance, creation date and expiration date
  *
  * @param apiKey - API Key
  */
@@ -70,6 +72,7 @@ export async function fetchBalance(
 
   return {
     requests_left: data.requests_left,
+    created_at: new Date(data.created_at),
     expiration_date: new Date(data.expiration_date),
   };
 }
