@@ -18,9 +18,10 @@ await fetchBalance(apiKey);
 ```
 Example Response:
 ```json
-{ 
-  "requests_left": 1000, 
-  "expiration_date": "2024-08-26T10:00:00Z"
+{
+  "requests_left": 300,
+  "created_at": "2026-01-26T00:31:39.381Z",
+  "expiration_date": "2026-02-26T00:30:39.381Z"
 }
 ```
 
