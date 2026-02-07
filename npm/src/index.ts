@@ -187,7 +187,7 @@ export async function upload(
     throw new Error("Uncover it: File size exceeds the 100MB limit");
   }
 
-  const validExtensions = [".exe", ".bin", ".elf"];
+  const validExtensions = [".exe", ".bin", ".elf", ".msi"];
 
   const fileName = (file as any).name;
 
