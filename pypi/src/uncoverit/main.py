@@ -8,11 +8,12 @@ import pefile
 import aiofiles
 import sys
 
-from .classes import *
-from .exceptions import *
+from .classes import Sample
+from .exceptions import InvalidApiKey, InvalidHash, InvalidFile, Timeout, InvalidApiResponse
 
 from typing import Optional
 from websockets import WebSocketClientProtocol
+from pefile import PEFormatError
 
 ws_endpoint = "wss://api.uncoverit.org/websocket"
 key_endpoint = "https://uncoverit.org/api"
@@ -85,7 +86,7 @@ class UncoveritClient:
     
     async def __validate_api_key(self) -> bool:
         """INTERNAL DO NOT USE: Validates API key by checking balance"""
-        self.requests_left = await self.check_balance()
+        self.requests_left = await self.check_balance(cached=True)
         if self.requests_left <= 0:
             return False
         return True
@@ -95,7 +96,7 @@ class UncoveritClient:
         try:
             pefile.PE(filepath, fast_load=True).close()
             return True
-        except:
+        except PEFormatError:
             return False
         
     def __is_valid_elf(self, filepath: str) -> bool:
@@ -104,6 +105,13 @@ class UncoveritClient:
             data = file.read(4)
             if len(data) < 4: return False
             return data == b"\x7fELF"
+
+    def __is_valid_msi(self, filepath: str) -> bool:
+        """INTERNAL DO NOT USE: Verifies if the file is a valid MSI"""
+        with open(filepath,"rb") as file:
+            data = file.read(4)
+            if len(data) < 4: return False
+            return data == b"\xD0\xCF\x11\xE0\xA1\xB1"
     
     async def _handle_ws_messages(self, websocket: WebSocketClientProtocol, sha256_hash: str) -> Optional[Sample]:
         """INTERNAL DO NOT USE: Handles ws messages"""
@@ -144,7 +152,7 @@ class UncoveritClient:
                 sha256.update(block)
         return sha256.hexdigest()
     
-    async def check_balance(self) -> int:
+    async def check_balance(self, cached: bool = False) -> int:
         """
         Checks the balance for the api key that was initalized with the client.
 
@@ -154,7 +162,7 @@ class UncoveritClient:
         Raises:
             InvalidApiResponse: Incase of a non 200 HTTP status code
         """
-        if self.requests_left != -1:
+        if cached and self.requests_left != -1:
             return self.requests_left
         
         url = f"{key_endpoint}/balance"
@@ -204,6 +212,9 @@ class UncoveritClient:
             return True
         
         if self.__is_valid_elf(filepath):
+            return True
+        
+        if self.__is_valid_msi(filepath):
             return True
         
         return False

@@ -1,2 +1,2 @@
 from .main import UncoveritClient
-from .classes import *
+from .classes import Tag, Sample
