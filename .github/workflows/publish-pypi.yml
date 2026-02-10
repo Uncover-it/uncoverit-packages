@@ -28,13 +28,6 @@ jobs:
 
       - name: Install build tools
         run: python -m pip install build --user
-        
-      - name: List files at pypi and root
-        run: |
-          echo "--- Files inside ./pypi ---"
-          ls -la .
-          echo "--- Files in parent directory (root) ---"
-          ls -la ..
 
       - name: Build distribution
         run: python -m build
