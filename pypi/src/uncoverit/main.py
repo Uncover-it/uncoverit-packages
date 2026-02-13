@@ -99,6 +99,11 @@ class UncoveritClient:
         except PEFormatError:
             return False
 
+def __is_valid_elf(self, filepath: str) -> bool:
+    """INTERNAL DO NOT USE: Verifies if the file is a valid ELF"""
+    with open(filepath, "rb") as file:
+        return file.read(4) == b"\x7fELF"
+
     def __is_valid_msi(self, filepath: str) -> bool:
         """INTERNAL DO NOT USE: Verifies if the file is a valid MSI"""
         with open(filepath, "rb") as file:
