@@ -7,10 +7,8 @@ import re
 import pefile
 import aiofiles
 import sys
-
 from .classes import Sample
 from .exceptions import InvalidApiKey, InvalidHash, InvalidFile, Timeout, InvalidApiResponse
-
 from typing import Optional
 from websockets import WebSocketClientProtocol
 from pefile import PEFormatError
@@ -27,10 +25,8 @@ class UncoveritClient:
         self.api_key: str = api_key
         self.requests_left: int = -1
         self.expiration_date: str = ""
-
         self.sha256_regex = re.compile(r"\b[0-9a-fA-F]{64}\b")
         self.sha512_regex = re.compile(r"\b[0-9a-fA-F]{128}\b")
-
         self._session = session
         self._managed_session = False
     
@@ -38,20 +34,16 @@ class UncoveritClient:
     async def create(cls, api_key: str, session: Optional[aiohttp.ClientSession] = None):
         """
         Asynchronously creates and initializes an Uncoverit client instance.
-
         This factory method is the preferred way to instantiate the class. It 
         establishes the network session and performs an initial API key validation 
         to ensure the client is ready for use.
-
         Args:
             api_key (str): Your Uncoverit API key.
             session (Optional[aiohttp.ClientSession]): An existing aiohttp session 
                 to reuse. If None, a new session is created automatically. You MUST
                 supply the auth headers in this case!
-
         Returns:
             Uncoverit: An initialized instance of the Uncoverit client.
-
         Raises:
             InvalidApiKey: If the provided API key is rejected by the server or 
                 the balance is zero.
@@ -79,7 +71,7 @@ class UncoveritClient:
     
     async def __aenter__(self):
         return self
-
+    
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self._managed_session:
             await self.close()
@@ -98,12 +90,12 @@ class UncoveritClient:
             return True
         except PEFormatError:
             return False
-
-def __is_valid_elf(self, filepath: str) -> bool:
-    """INTERNAL DO NOT USE: Verifies if the file is a valid ELF"""
-    with open(filepath, "rb") as file:
-        return file.read(4) == b"\x7fELF"
-
+    
+    def __is_valid_elf(self, filepath: str) -> bool:
+        """INTERNAL DO NOT USE: Verifies if the file is a valid ELF"""
+        with open(filepath, "rb") as file:
+            return file.read(4) == b"\x7fELF"
+    
     def __is_valid_msi(self, filepath: str) -> bool:
         """INTERNAL DO NOT USE: Verifies if the file is a valid MSI"""
         with open(filepath, "rb") as file:
@@ -125,17 +117,14 @@ def __is_valid_elf(self, filepath: str) -> bool:
             await self._session.close()
             if sys.platform == 'win32':
                 await asyncio.sleep(0.25)
-
+    
     async def sha256_checksum(self, filepath: str) -> str:
         """
         Asynchronously calculates the sha256 hash for the given file
-
         Args:
             filepath (str): Filepath
-
         Returns:
             sha256 (str): Calculated sha256 hash
-
         Raises:
             FileNotFoundError: If the file does not exist
         """
@@ -154,10 +143,8 @@ def __is_valid_elf(self, filepath: str) -> bool:
     async def check_balance(self, cached: bool = False) -> int:
         """
         Checks the balance for the api key that was initalized with the client.
-
         Returns:
             balance (int): The leftover balance
-
         Raises:
             InvalidApiResponse: Incase of a non 200 HTTP status code
         """
@@ -168,18 +155,16 @@ def __is_valid_elf(self, filepath: str) -> bool:
         async with self._session.get(url) as response:
             if response.status == 200:
                 data = await response.json()
-                self.requests_left = data.get("requests_left",0)
-                self.expiration_date = data.get("expiration_date","Unknown")
+                self.requests_left = data.get("requests_left", 0)
+                self.expiration_date = data.get("expiration_date", "Unknown")
                 return self.requests_left
-            raise await InvalidApiResponse.from_response(response)                
+            raise await InvalidApiResponse.from_response(response)
     
     def validate_hash(self, hash: str) -> bool:
         """
         Validates the given hash
-
         Args:
             hash (str): The file hash
-
         Returns:
             True (bool): If the hash is sha256, blake3 or sha512 else False
         """
@@ -194,13 +179,10 @@ def __is_valid_elf(self, filepath: str) -> bool:
     def validate_file(self, filepath: str) -> bool:
         """
         Validates the given file if its usable for analysis
-
         Args:
             filepath (str): The path to the file
-
         Returns:
             True (bool): If the file can be uploaded for analysis else False
-
         Raises:
             FileNotFoundError: If the file does not exist
         """
@@ -217,18 +199,15 @@ def __is_valid_elf(self, filepath: str) -> bool:
             return True
         
         return False
-
+    
     async def upload_sample(self, filepath: str) -> Optional[Sample]:
         """
         Uploads the given file for analysis and returns the Sample data.
         This functions also tracks the leftover balance locally.
-
         Args:
             filepath (str): The path to the file to be uploaded
-
         Returns:
             sample (Sample): If the file was uploaded successfully
-
         Raises:
             FileNotFoundError: If the file does not exist
             InvalidFile: If the file is not suitable for upload
@@ -247,33 +226,31 @@ def __is_valid_elf(self, filepath: str) -> bool:
             
             if message != "STATUS:UPLOAD_REQUIRED":
                 return await self.fetch_static_report(sha256_hash)
-
+            
             async with aiofiles.open(filepath, mode="rb") as f:
-                data = aiohttp.FormData()
-                data.add_field('file', f, filename=os.path.basename(filepath))
-                    
-                async with self._session.post(f"{api_endpoint}/upload", data=data) as response:
-                    self.requests_left -= 1
-                    if response.status != 200:
-                        await websocket.close()
-                        raise await InvalidApiResponse.from_response(response)
-                    
+                file_content = await f.read()
+            
+            data = aiohttp.FormData()
+            data.add_field('file', file_content, filename=os.path.basename(filepath))
+            
+            async with self._session.post(f"{api_endpoint}/upload", data=data) as response:
+                self.requests_left -= 1
+                if response.status != 200:
+                    await websocket.close()
+                    raise await InvalidApiResponse.from_response(response)
+            
             try:
                 return await asyncio.wait_for(self._handle_ws_messages(websocket, sha256_hash), timeout=5)
             except asyncio.TimeoutError:
                 raise Timeout("Upload timed out.")
-
-
+    
     async def fetch_static_report(self, hash: str) -> Optional[Sample]:
         """
         Fetches the static analysis sample data for the given sha256, sha512 or blake3 hash
-
         Args:
             hash (str): The sha256, sha512 or blake3 hash
-
         Returns:
             sample (Sample): If sample data was retrieved successfully
-
         Raises:
             InvalidHash: If the hash is not sha256, sha512 or blake3
             InvalidApiResponse: Incase of a non 200 HTTP status code
@@ -291,4 +268,3 @@ def __is_valid_elf(self, filepath: str) -> bool:
             if response.status == 404:
                 return None
             raise await InvalidApiResponse.from_response(response)
-        return None
