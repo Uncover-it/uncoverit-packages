@@ -109,9 +109,9 @@ class UncoveritClient:
     def __is_valid_msi(self, filepath: str) -> bool:
         """INTERNAL DO NOT USE: Verifies if the file is a valid MSI"""
         with open(filepath,"rb") as file:
-            data = file.read(4)
-            if len(data) < 4: return False
-            return data == b"\xD0\xCF\x11\xE0\xA1\xB1"
+            data = file.read(8)
+            if len(data) < 8: return False
+            return data == b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"
     
     async def _handle_ws_messages(self, websocket: WebSocketClientProtocol, sha256_hash: str) -> Optional[Sample]:
         """INTERNAL DO NOT USE: Handles ws messages"""
