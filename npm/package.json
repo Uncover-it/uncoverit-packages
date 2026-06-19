@@ -9,9 +9,9 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "devDependencies": {
-    "@types/node": "^25.0.3",
+    "@types/node": "^26.0.0",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "exports": {
     ".": {
@@ -24,6 +24,9 @@
     "url": "https://github.com/Uncover-it/uncoverit-packages/issues"
   },
   "description": "API Client for Uncover it",
+  "engines": {
+    "node": ">=22"
+  },
   "files": [
     "dist"
   ],

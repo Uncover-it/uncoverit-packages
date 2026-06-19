@@ -1,5 +1,3 @@
-import "crypto";
-
 export interface BalanceResponseType {
   requests_left: number;
   created_at: Date;
@@ -18,11 +16,11 @@ interface RawBalanceResponse {
 
 export interface StaticAnalysisDataType {
   fileName: string;
-  date: Date;
-  staticAnalysisDuration: number;
-  tags: Tags[];
+  date: string;
+  staticAnalysisDuration: string;
+  tags: Tag[];
   sizeInBytes: number;
-  configs?: JSON;
+  configs?: Record<string, unknown>;
   blake3Hash: string;
   sha512Hash: string;
   sha256Hash: string;
@@ -31,7 +29,7 @@ export interface StaticAnalysisDataType {
   ssDeep: string;
 }
 
-interface Tags {
+interface Tag {
   name: string;
   heat: number;
 }
@@ -125,7 +123,9 @@ export async function exists(
 
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(
-      `wss://api.uncoverit.org/websocket?hash=${hash}&apikey=${apiKey}`,
+      `wss://api.uncoverit.org/websocket?hash=${hash}&apikey=${encodeURIComponent(
+        apiKey,
+      )}`,
     );
 
     const timeout = setTimeout(() => {
@@ -160,6 +160,7 @@ export async function exists(
         reject(
           new Error(`Uncover it: WebSocket closed unexpectedly: ${event.code}`),
         );
+        return;
       }
 
       reject(new Error("Uncover it: WebSocket closed without response"));
@@ -183,6 +184,10 @@ export async function upload(
   apiKey: string,
   file: Blob | File,
 ): Promise<UploadResponseType> {
+  if (!apiKey) {
+    throw new Error("Uncover it: API Key is required");
+  }
+
   if (file.size > 100 * 1024 * 1024) {
     throw new Error("Uncover it: File size exceeds the 100MB limit");
   }
@@ -226,15 +231,42 @@ export async function upload(
     body: formData,
   });
 
-  const response = await data.json();
-
   if (!data.ok) {
-    throw new Error(
-      `Uncover it: Failed to upload file. ${data.status}: ${data.statusText}. ${response.error}`,
-    );
+    let errorMessage = `Uncover it: Failed to upload file. ${data.status}: ${data.statusText}`;
+    try {
+      const errorBody = (await data.json()) as any;
+      if (errorBody?.error) {
+        errorMessage += `. ${errorBody.error}`;
+      }
+    } catch {}
+    throw new Error(errorMessage);
   }
 
+  const response = (await data.json()) as UploadResponseType;
+
   return { blake3Hash: response.blake3Hash };
+}
+const staticReportCache = new Map<string, StaticAnalysisDataType>();
+
+export interface StaticReportOptions {
+  /**
+   * Cache the result in-process, keyed by API key + hash, so a repeat call for
+   * the same report is returned without a new (billed) request.
+   *
+   * Off by default to avoid storing data twice when you maintain your own
+   * cache. Set to `true` to enable. Defaults to `false`.
+   */
+  cache?: boolean;
+}
+
+/**
+ * Clears the in-process static report cache.
+ *
+ * Useful in long-running processes to free memory, since the cache otherwise
+ * grows for every unique API key + hash queried.
+ */
+export function clearStaticReportCache(): void {
+  staticReportCache.clear();
 }
 
 /**
@@ -242,15 +274,26 @@ export async function upload(
  *
  * @param apiKey - API Key
  * @param hash - SHA-256, SHA-512 or BLAKE3 hash.
+ * @param options - Optional settings. Set `{ cache: true }` to cache the
+ * result in-process and serve repeat calls without a new (billed) request.
  *
  * @example
  * // Fetching a report
  * const data = await staticReport("YOUR_API_KEY", hash);
+ *
+ * @example
+ * // Cache the result so a repeat call isn't billed again
+ * const data = await staticReport("YOUR_API_KEY", hash, { cache: true });
  */
 export async function staticReport(
   apiKey: string,
   hash: string,
+  options: StaticReportOptions = {},
 ): Promise<StaticAnalysisDataType> {
+  if (!apiKey) {
+    throw new Error("Uncover it: API Key is required");
+  }
+
   const regex = /\b([a-fA-F0-9]{64}|[a-fA-F0-9]{128})\b/;
   if (!regex.test(hash)) {
     throw new Error(
@@ -258,18 +301,37 @@ export async function staticReport(
     );
   }
 
+  const useCache = options.cache ?? false;
+  const cacheKey = `${apiKey}:${hash}`;
+
+  if (useCache) {
+    const cached = staticReportCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+  }
+
   const data = await fetch(`https://api.uncoverit.org/private/sample/${hash}`, {
     headers: {
       authorization: apiKey,
     },
-    cache: "force-cache",
   });
 
-  const response = await data.json();
   if (!data.ok) {
-    throw new Error(
-      `Uncover it: Failed to fetch static report. ${data.status}: ${data.statusText}. ${response.error}`,
-    );
+    let errorMessage = `Uncover it: Failed to fetch static report. ${data.status}: ${data.statusText}`;
+    try {
+      const errorBody = (await data.json()) as any;
+      if (errorBody?.error) {
+        errorMessage += `. ${errorBody.error}`;
+      }
+    } catch {}
+    throw new Error(errorMessage);
+  }
+
+  const response = (await data.json()) as StaticAnalysisDataType;
+
+  if (useCache) {
+    staticReportCache.set(cacheKey, response);
   }
 
   return response;

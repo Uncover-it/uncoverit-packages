@@ -47,6 +47,15 @@ Fetching a static analysis report:
 ```js
 await staticReport(apiKey, hash); // hash can be SHA-256, SHA-512 or BLAKE3
 ```
+> Each `staticReport` call is a billed request. Reports are immutable per hash, so you can opt into an in-process cache to serve repeat calls for the same hash without billing again:
+> ```js
+> await staticReport(apiKey, hash, { cache: true });
+> ```
+> Caching is off by default to avoid storing data twice if you maintain your own cache. Clear the in-process cache (e.g. to free memory in a long-running process):
+> ```js
+> import { clearStaticReportCache } from "uncoverit";
+> clearStaticReportCache();
+> ```
 Example Response:
 ```json
 {
