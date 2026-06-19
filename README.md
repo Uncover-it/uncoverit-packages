@@ -1,25 +1,28 @@
-# Uncover it packages
+# NPM
 
-## NPM
+## Installation
 
-### Installation
-```shell 
+```npm 
 npm i uncoverit
 ```
 
-### Usage
+## Usage
+
+> [!WARNING]
+> Please ensure these functions are always ran on the **server-side** to prevent API key abuse.
 
 ```js
 import { fetchBalance, exists, upload, staticReport } from "uncoverit";
 
 // exported types
-import { BalanceResponseType, UploadResponseType, StaticAnalysisDataType }
+import { BalanceResponseType, UploadResponseType, StaticAnalysisDataType } from "uncoverit";
 ```
 
-Fetching balance:
+### Fetching balance
 ```js
 await fetchBalance(apiKey);
 ```
+
 Example Response:
 ```json
 {
@@ -29,28 +32,37 @@ Example Response:
 }
 ```
 
-Checking if file exists (Upload function already does this:
+### Checking if file exists (Upload function already does this)
+
 ```js
 await exists(apiKey, file); // file can be a File, Blob or a SHA-256 hash string
 ```
+
 Example Response:
 ```
 true
 ```
 
-Uploading a file:
+### Uploading a file
+
 ```js
 await upload(apiKey, file); // file can be a File or a Blob
 ```
+
 Example Response:
 ```json
 { "blake3Hash": "8347c2669ff2a7d5a1c2e73171bec5c36e3ac5654699c20a622ebf24860255c8" }
 ```
 
-Fetching a static analysis report:
+### Fetching a static analysis report
+
 ```js
-await staticReport(apiKey, hash); // hash can be SHA-256, SHA-512 or BLAKE3
+await staticReport(apiKey, hash, { cache: true | false }); // hash can be SHA-256, SHA-512 or BLAKE3. cache defaults to false.
 ```
+
+> [!WARNING]
+> Only set cache to `true` if you **do not** already have a caching logic in the backend as it will result in unwanted consumption of system resources.
+
 Example Response:
 ```json
 {
@@ -90,21 +102,22 @@ Example Response:
 ```
 
 
-## PIP
+# PIP
 
-### Installation
+## Installation
 ```shell 
 pip install uncoverit
 ```
 
-### Usage
+## Usage
 
 ```py
 from uncoverit import UncoveritClient
 from uncoverit.exceptions import *
 ```
 
-Fetching balance:
+### Fetching balance
+
 ```py
 from uncoverit import UncoveritClient
 async with await UncoveritClient.create(api_key) as client:
@@ -112,7 +125,9 @@ async with await UncoveritClient.create(api_key) as client:
     print(f"Requests left: {await client.check_balance()}") # makes a http request to fetch the balance
     # prints "Requests left: 1000"
 ```
-Checking if file exists (Upload function already does this:
+
+### Checking if file exists (Upload function already does this)
+
 ```py
 from uncoverit import UncoveritClient
 async with await UncoveritClient.create(api_key) as client:
@@ -120,7 +135,8 @@ async with await UncoveritClient.create(api_key) as client:
     # fetched_sample here is None
 ```
 
-Uploading a file:
+### Uploading a file
+
 ```py
 from uncoverit import UncoveritClient
 async with await UncoveritClient.create(api_key) as client:
@@ -133,7 +149,8 @@ async with await UncoveritClient.create(api_key) as client:
     print(uploaded_sample.md5)
 ```
 
-Fetching a static analysis report:
+### Fetching a static analysis report
+
 ```py
 from uncoverit import UncoveritClient
 async with await UncoveritClient.create(api_key) as client:
