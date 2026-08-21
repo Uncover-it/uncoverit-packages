@@ -16,7 +16,7 @@ from websockets import WebSocketClientProtocol
 from pefile import PEFormatError
 
 ws_endpoint = "wss://api.uncoverit.org/websocket"
-key_endpoint = "https://uncoverit.org/api"
+key_endpoint = "https://www.uncoverit.org/api"
 api_endpoint = "https://api.uncoverit.org/private"
 
 class UncoveritClient:
