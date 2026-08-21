@@ -1,42 +1,98 @@
 name: Publish to NPM
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump to apply to npm/package.json"
+        type: choice
+        required: true
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+      dry_run:
+        description: "Bump and build only - do not publish, commit or tag"
+        type: boolean
+        default: false
+
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
 
 jobs:
-  build-and-publish:
-    if: startsWith(github.ref, 'refs/tags/npm-')
-    permissions:
-      contents: read
-      id-token: write
+  publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the version bump commit, tag and release
+      id-token: write # npm OIDC trusted publishing + provenance
 
-    # run everything in ./npm
     defaults:
       run:
         working-directory: ./npm
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
-      # setup bun
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      # setup node
+      # The npm CLI is still needed for the publish step itself: `bun publish`
+      # supports neither OIDC trusted publishing nor --provenance
+      # (see oven-sh/bun#15601 and oven-sh/bun#30522). Everything else uses bun.
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: "latest"
-          registry-url: "https://registry.npmjs.org"
+          node-version: latest
+          registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
-      # publish to npm
+      - name: Bump version
+        id: bump
+        run: |
+          bun pm version "${{ inputs.bump }}" --no-git-tag-version
+          echo "version=$(bun pm pkg get version | tr -d '"')" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: bun run build
+
+      # Publishing happens before the commit so that a failed publish leaves
+      # the repository untouched and the run can simply be retried.
       - name: Publish to NPM
+        if: ${{ !inputs.dry_run }}
         run: npm publish --provenance --access public
+
+      - name: Commit, tag and push
+        if: ${{ !inputs.dry_run }}
+        working-directory: .
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add npm/package.json
+          git commit -m "npm: release v${VERSION}"
+          git pull --rebase origin "${BRANCH}"
+          git tag "npm-v${VERSION}"
+          git push origin "HEAD:${BRANCH}"
+          git push origin "npm-v${VERSION}"
+
+      - name: Create GitHub release
+        if: ${{ !inputs.dry_run }}
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          gh release create "npm-v${VERSION}" \
+            --title "uncoverit (npm) v${VERSION}" \
+            --generate-notes
