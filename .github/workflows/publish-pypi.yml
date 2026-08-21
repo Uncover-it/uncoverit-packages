@@ -38,8 +38,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Pinned to a full semver tag on purpose: astral-sh stopped publishing
+      # floating major tags after v7, so `@v10` does not resolve.
       - name: Setup uv
-        uses: astral-sh/setup-uv@v10
+        uses: astral-sh/setup-uv@v10.0.1
         with:
           version: latest
 
